@@ -1,69 +1,607 @@
-import Image from "next/image";
+ 
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+type Event = {
+  _id: string;
+  title: string;
+  description?: string;
+  eventType: string;
+  thumbnail?: string;
+  location: string;
+  eventDate: string;
+};
+
+const galleryImages = [
+  {
+    image:
+      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=700",
+    title: "Community Volunteering",
+  },
+  {
+    image:
+      "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=700",
+    title: "Protect Our Planet",
+  },
+  {
+    image:
+      "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=700",
+    title: "Helping Each Other",
+  },
+  {
+    image:
+      "https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?w=700",
+    title: "Working Together",
+  },
+];
+
+const features = [
+  {
+    number: "01",
+    icon: "🔎",
+    title: "Discover Events",
+    description:
+      "Explore meaningful community events and find opportunities to make a difference.",
+  },
+  {
+    number: "02",
+    icon: "🤝",
+    title: "Join a Community",
+    description:
+      "Connect with like-minded people and participate in activities around you.",
+  },
+  {
+    number: "03",
+    icon: "🌱",
+    title: "Create Impact",
+    description:
+      "Organize your own initiatives and inspire others to build a better future.",
+  },
+];
 
 export default function Home() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+       const response = await fetch("http://localhost:8000/api/events?limit=6");
+
+        if (!response.ok) {
+          throw new Error("Could not load events");
+        }
+
+        const result = await response.json();
+
+        if (result.success && Array.isArray(result.data)) {
+          const upcoming = result.data
+            .filter(
+              (event: Event) =>
+                event.eventDate &&
+                new Date(event.eventDate).getTime() > Date.now()
+            )
+            .sort(
+              (a: Event, b: Event) =>
+                new Date(a.eventDate).getTime() -
+                new Date(b.eventDate).getTime()
+            );
+
+          setEvents(upcoming.slice(0, 6));
+        }
+      } catch (error) {
+        console.error("Event fetching error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  const locationsCount = new Set(events.map((event) => event.location)).size;
+  const categoriesCount = new Set(events.map((event) => event.eventType)).size;
+
+  const handleSubscribe = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!email.trim()) return;
+
+    // Newsletter backend is not required for this assignment.
+    setSubscribed(true);
+    setEmail("");
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <main className="overflow-hidden bg-[#fafaf7] font-sans text-[#183c2e]">
+
+      {/* NAVBAR */}
+      <header className="sticky top-0 z-50 border-b border-[#e9e9e2] bg-[#fafaf7]/95 backdrop-blur-md">
+        <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
+          <Link href="/" className="text-2xl font-black tracking-tight">
+            GOOD<span className="text-[#e47b52]">WAVE.</span>
+          </Link>
+
+          <div className="hidden items-center gap-9 text-sm font-semibold md:flex">
+            <Link href="/" className="transition hover:text-[#e47b52]">
+              Home
+            </Link>
+            <Link
+              href="/events"
+              className="transition hover:text-[#e47b52]"
+            >
+              Upcoming Events
+            </Link>
+            <Link
+              href="/login"
+              className="transition hover:text-[#e47b52]"
+            >
+              Login
+            </Link>
+          </div>
+
+          <Link
+            href="/register"
+            className="rounded-full bg-[#183c2e] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#e47b52]"
+          >
+            Join Community <span className="ml-1">↗</span>
+          </Link>
+        </nav>
+      </header>
+
+      {/* HERO BANNER */}
+      <section className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 lg:grid-cols-2 lg:px-8 lg:py-24">
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#e8eee7] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#315c46]">
+            <span className="h-2 w-2 rounded-full bg-[#e47b52]" />
+            Together, We Make a Difference
+          </span>
+
+          <h1 className="mt-8 text-5xl font-black leading-[1.12] tracking-tight sm:text-6xl lg:text-[76px]">
+            Small Actions.
+            <span className="mt-2 block text-[#e47b52]">
+              Lasting Impact.
+            </span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+
+          <p className="mt-7 max-w-xl text-lg leading-8 text-[#68766e]">
+            A better world starts with people like you. Discover local
+            initiatives, join community events, support people in need and
+            make every action count.
+          </p>
+
+          <div className="mt-9 flex flex-wrap gap-4">
+            <Link
+              href="/events"
+              className="rounded-full bg-[#183c2e] px-8 py-4 font-bold text-white transition hover:-translate-y-1 hover:bg-[#e47b52]"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Explore Events <span className="ml-2">→</span>
+            </Link>
+
+            <Link
+              href="/register"
+              className="rounded-full border border-[#183c2e] px-8 py-4 font-bold transition hover:bg-[#e8eee7]"
             >
-              Learning
-            </a>{" "}
-            center.
+              Get Involved
+            </Link>
+          </div>
+
+          <div className="mt-12 flex flex-wrap gap-10 border-t border-[#e5e8e2] pt-8">
+            <div>
+              <h3 className="text-3xl font-black">{events.length}</h3>
+              <p className="mt-1 text-sm text-[#78847c]">
+                Upcoming Events
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-3xl font-black">{locationsCount}</h3>
+              <p className="mt-1 text-sm text-[#78847c]">
+                Event Locations
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-3xl font-black">{categoriesCount}</h3>
+              <p className="mt-1 text-sm text-[#78847c]">
+                Event Categories
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative">
+          <img
+            src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1200"
+            alt="Volunteers working together"
+            className="h-[420px] w-full rounded-[30px] object-cover shadow-2xl sm:h-[520px]"
+          />
+
+          <div className="absolute -bottom-6 left-4 rounded-2xl bg-white p-5 shadow-xl sm:-left-8 sm:p-6">
+            <p className="text-sm font-medium text-gray-500">
+              Your action matters
+            </p>
+            <h3 className="mt-1 text-xl font-black">
+              Be the Change 🌱
+            </h3>
+          </div>
+
+          <div className="absolute right-5 top-5 rounded-full bg-white/90 px-5 py-3 text-sm font-bold shadow-lg">
+            💚 Spread Kindness
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="bg-[#183c2e] px-5 py-24 text-white lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-2xl">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#f09a73]">
+              Simple Steps, Real Change
+            </p>
+
+            <h2 className="mt-5 text-4xl font-black leading-tight sm:text-5xl">
+              How GOODWAVE
+              <br />
+              Makes It Happen.
+            </h2>
+
+            <p className="mt-5 leading-7 text-gray-300">
+              Making a positive impact should be simple. We connect people
+              with opportunities to create meaningful change.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {features.map((feature) => (
+              <div
+                key={feature.number}
+                className="rounded-3xl border border-white/15 bg-white/[0.06] p-8 transition hover:-translate-y-2 hover:bg-white/[0.1]"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-4xl">{feature.icon}</span>
+                  <span className="text-sm font-bold text-[#f09a73]">
+                    {feature.number}
+                  </span>
+                </div>
+
+                <h3 className="mt-8 text-2xl font-bold">
+                  {feature.title}
+                </h3>
+
+                <p className="mt-4 leading-7 text-gray-300">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* UPCOMING EVENTS */}
+      <section className="px-5 py-24 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#e47b52]">
+                Be Part of Something Good
+              </p>
+
+              <h2 className="mt-4 text-4xl font-black sm:text-5xl">
+                Recent Upcoming Events
+              </h2>
+
+              <p className="mt-4 max-w-xl leading-7 text-[#78847c]">
+                Discover opportunities to volunteer, support your community
+                and make a difference together.
+              </p>
+            </div>
+
+            <Link
+              href="/events"
+              className="font-bold text-[#315c46] transition hover:text-[#e47b52]"
+            >
+              Explore All Events →
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="mt-12 grid gap-7 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((item) => (
+                <div
+                  key={item}
+                  className="h-[420px] animate-pulse rounded-3xl bg-[#e9eee8]"
+                />
+              ))}
+            </div>
+          ) : events.length === 0 ? (
+            <div className="mt-12 rounded-3xl bg-white p-12 text-center shadow-sm">
+              <div className="text-5xl">🌱</div>
+              <h3 className="mt-5 text-2xl font-bold">
+                No Upcoming Events Yet
+              </h3>
+              <p className="mt-3 text-gray-500">
+                Be the first to create an event and inspire your community.
+              </p>
+              <Link
+                href="/login"
+                className="mt-7 inline-block rounded-full bg-[#183c2e] px-7 py-3 font-bold text-white"
+              >
+                Create an Event
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-12 grid gap-7 md:grid-cols-2 lg:grid-cols-3">
+              {events.map((event) => (
+                <article
+                  key={event._id}
+                  className="group overflow-hidden rounded-3xl border border-[#e9e9e2] bg-white transition duration-300 hover:-translate-y-2 hover:shadow-xl"
+                >
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={
+                        event.thumbnail ||
+                        "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800"
+                      }
+                      alt={event.title}
+                      className="h-60 w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+
+                    <span className="absolute left-5 top-5 rounded-full bg-white px-4 py-2 text-xs font-bold text-[#315c46] shadow">
+                      {event.eventType}
+                    </span>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 text-sm text-[#e47b52]">
+                      <span>📅</span>
+                      <span className="font-semibold">
+                        {new Date(event.eventDate).toLocaleDateString(
+                          "en-US",
+                          {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          }
+                        )}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-4 line-clamp-1 text-xl font-bold text-[#183c2e]">
+                      {event.title}
+                    </h3>
+
+                    <p className="mt-3 line-clamp-2 min-h-12 text-sm leading-6 text-[#78847c]">
+                      {event.description ||
+                        "Join us and become part of a positive change in your community."}
+                    </p>
+
+                    <div className="mt-5 flex items-center justify-between border-t border-[#eeeeea] pt-5">
+                      <span className="text-sm text-[#78847c]">
+                        📍 {event.location}
+                      </span>
+
+                      <Link
+                        href={`/events/${event._id}`}
+                        className="font-bold text-[#315c46] transition hover:text-[#e47b52]"
+                      >
+                        View Details →
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* COMMUNITY GALLERY */}
+      <section className="bg-[#f0f2eb] px-5 py-24 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#e47b52]">
+              Moments That Matter
+            </p>
+
+            <h2 className="mt-4 text-4xl font-black sm:text-5xl">
+              A Community in Action.
+            </h2>
+
+            <p className="mt-5 leading-7 text-[#78847c]">
+              Every smile, every helping hand and every small action creates
+              a story worth sharing.
+            </p>
+          </div>
+
+          <div className="mt-14 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {galleryImages.map((item, index) => (
+              <div
+                key={item.title}
+                className={`group relative overflow-hidden rounded-3xl ${
+                  index === 1 || index === 2
+                    ? "mt-8"
+                    : ""
+                }`}
+              >
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="h-64 w-full object-cover transition duration-500 group-hover:scale-110 sm:h-80"
+                />
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+
+                <h3 className="absolute bottom-5 left-4 right-3 text-sm font-bold text-white sm:left-6 sm:text-lg">
+                  {item.title}
+                </h3>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* COMMUNITY CTA */}
+      <section className="px-5 py-24 lg:px-8">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 overflow-hidden rounded-[35px] bg-[#e9eee7] p-8 sm:p-12 lg:grid-cols-2 lg:p-16">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#e47b52]">
+              Together We Are Stronger
+            </p>
+
+            <h2 className="mt-5 text-4xl font-black leading-tight sm:text-5xl">
+              Your Community.
+              <br />
+              Your Opportunity.
+              <br />
+              <span className="text-[#e47b52]">Your Impact.</span>
+            </h2>
+
+            <p className="mt-6 max-w-lg leading-7 text-[#68766e]">
+              Join GOODWAVE and become part of a growing community of people
+              who care about the future. Start with one small action today.
+            </p>
+
+            <Link
+              href="/register"
+              className="mt-8 inline-block rounded-full bg-[#183c2e] px-8 py-4 font-bold text-white transition hover:bg-[#e47b52]"
+            >
+              Become a Volunteer →
+            </Link>
+          </div>
+
+          <div>
+            <img
+              src="https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=1000"
+              alt="People celebrating community"
+              className="h-[350px] w-full rounded-3xl object-cover sm:h-[420px]"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* NEWSLETTER */}
+      <section className="bg-[#183c2e] px-5 py-20 text-white lg:px-8">
+        <div className="mx-auto max-w-4xl text-center">
+          <span className="text-4xl">✉️</span>
+
+          <p className="mt-5 text-sm font-bold uppercase tracking-[0.2em] text-[#f09a73]">
+            Stay Connected
+          </p>
+
+          <h2 className="mt-4 text-4xl font-black sm:text-5xl">
+            Good Things Are Happening.
+          </h2>
+
+          <p className="mx-auto mt-5 max-w-xl leading-7 text-gray-300">
+            Get community stories, upcoming events and opportunities to
+            make a positive impact delivered to your inbox.
+          </p>
+
+          <form
+            onSubmit={handleSubscribe}
+            className="mx-auto mt-9 flex max-w-xl flex-col gap-3 rounded-2xl bg-white p-2 sm:flex-row"
+          >
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email address"
+              className="min-w-0 flex-1 rounded-xl px-5 py-4 text-[#183c2e] outline-none"
+            />
+
+            <button
+              type="submit"
+              className="rounded-xl bg-[#e47b52] px-7 py-4 font-bold text-white transition hover:bg-[#c9613b]"
+            >
+              Subscribe →
+            </button>
+          </form>
+
+          {subscribed && (
+            <p className="mt-4 font-semibold text-[#b9e8c9]">
+              Thank you for subscribing!
+            </p>
+          )}
+
+          <p className="mt-5 text-xs text-gray-400">
+            No spam. Just positive stories and meaningful opportunities.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-[#102b21] px-5 pb-8 pt-16 text-white lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-12 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="lg:col-span-2">
+            <Link href="/" className="text-3xl font-black tracking-tight">
+              GOOD<span className="text-[#e47b52]">WAVE.</span>
+            </Link>
+
+            <p className="mt-5 max-w-md leading-7 text-gray-400">
+              We believe small actions can create lasting impact. GOODWAVE
+              brings people together to build stronger communities and a
+              better world.
+            </p>
+
+            <div className="mt-7 flex gap-3">
+              {["f", "𝕏", "in", "◎"].map((social) => (
+                <span
+                  key={social}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-sm font-bold text-white transition hover:border-[#e47b52] hover:bg-[#e47b52]"
+                >
+                  {social}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-bold">Explore</h3>
+            <div className="mt-6 flex flex-col gap-4 text-sm text-gray-400">
+              <Link href="/" className="hover:text-[#e47b52]">
+                Home
+              </Link>
+              <Link href="/events" className="hover:text-[#e47b52]">
+                Upcoming Events
+              </Link>
+              <Link href="/login" className="hover:text-[#e47b52]">
+                Login
+              </Link>
+              <Link href="/register" className="hover:text-[#e47b52]">
+                Join Community
+              </Link>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-bold">Get Involved</h3>
+            <div className="mt-6 flex flex-col gap-4 text-sm text-gray-400">
+              <Link href="/events" className="hover:text-[#e47b52]">
+                Discover Events
+              </Link>
+              <Link href="/login" className="hover:text-[#e47b52]">
+                Create an Event
+              </Link>
+              <Link href="/register" className="hover:text-[#e47b52]">
+                Become a Volunteer
+              </Link>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+
+        <div className="mx-auto mt-14 flex max-w-7xl flex-col justify-between gap-4 border-t border-white/10 pt-7 text-sm text-gray-500 sm:flex-row">
+          <p>
+            © {new Date().getFullYear()} GOODWAVE. All rights reserved.
+          </p>
+          <p>Small Actions. Lasting Impact. 💚</p>
+        </div>
+      </footer>
+    </main>
   );
 }
