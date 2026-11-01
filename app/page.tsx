@@ -70,7 +70,9 @@ export default function Home() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-       const response = await fetch("http://localhost:8000/api/events?limit=6");
+        const response = await fetch(
+          "http://localhost:8000/api/events?limit=6"
+        );
 
         if (!response.ok) {
           throw new Error("Could not load events");
@@ -103,56 +105,25 @@ export default function Home() {
     fetchEvents();
   }, []);
 
-  const locationsCount = new Set(events.map((event) => event.location)).size;
-  const categoriesCount = new Set(events.map((event) => event.eventType)).size;
+  const locationsCount = new Set(
+    events.map((event) => event.location)
+  ).size;
+
+  const categoriesCount = new Set(
+    events.map((event) => event.eventType)
+  ).size;
 
   const handleSubscribe = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!email.trim()) return;
 
-    // Newsletter backend is not required for this assignment.
     setSubscribed(true);
     setEmail("");
   };
 
   return (
-    <main className="overflow-hidden bg-[#fafaf7] font-sans text-[#183c2e]">
-
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-50 border-b border-[#e9e9e2] bg-[#fafaf7]/95 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
-          <Link href="/" className="text-2xl font-black tracking-tight">
-            GOOD<span className="text-[#e47b52]">WAVE.</span>
-          </Link>
-
-          <div className="hidden items-center gap-9 text-sm font-semibold md:flex">
-            <Link href="/" className="transition hover:text-[#e47b52]">
-              Home
-            </Link>
-            <Link
-              href="/events"
-              className="transition hover:text-[#e47b52]"
-            >
-              Upcoming Events
-            </Link>
-            <Link
-              href="/login"
-              className="transition hover:text-[#e47b52]"
-            >
-              Login
-            </Link>
-          </div>
-
-          <Link
-            href="/register"
-            className="rounded-full bg-[#183c2e] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#e47b52]"
-          >
-            Join Community <span className="ml-1">↗</span>
-          </Link>
-        </nav>
-      </header>
-
+    <div className="overflow-hidden bg-[#fafaf7] font-sans text-[#183c2e]">
       {/* HERO BANNER */}
       <section className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 lg:grid-cols-2 lg:px-8 lg:py-24">
         <div>
@@ -170,8 +141,8 @@ export default function Home() {
 
           <p className="mt-7 max-w-xl text-lg leading-8 text-[#68766e]">
             A better world starts with people like you. Discover local
-            initiatives, join community events, support people in need and
-            make every action count.
+            initiatives, join community events, support people in need
+            and make every action count.
           </p>
 
           <div className="mt-9 flex flex-wrap gap-4">
@@ -192,21 +163,27 @@ export default function Home() {
 
           <div className="mt-12 flex flex-wrap gap-10 border-t border-[#e5e8e2] pt-8">
             <div>
-              <h3 className="text-3xl font-black">{events.length}</h3>
+              <h3 className="text-3xl font-black">
+                {events.length}
+              </h3>
               <p className="mt-1 text-sm text-[#78847c]">
                 Upcoming Events
               </p>
             </div>
 
             <div>
-              <h3 className="text-3xl font-black">{locationsCount}</h3>
+              <h3 className="text-3xl font-black">
+                {locationsCount}
+              </h3>
               <p className="mt-1 text-sm text-[#78847c]">
                 Event Locations
               </p>
             </div>
 
             <div>
-              <h3 className="text-3xl font-black">{categoriesCount}</h3>
+              <h3 className="text-3xl font-black">
+                {categoriesCount}
+              </h3>
               <p className="mt-1 text-sm text-[#78847c]">
                 Event Categories
               </p>
@@ -251,8 +228,8 @@ export default function Home() {
             </h2>
 
             <p className="mt-5 leading-7 text-gray-300">
-              Making a positive impact should be simple. We connect people
-              with opportunities to create meaningful change.
+              Making a positive impact should be simple. We connect
+              people with opportunities to create meaningful change.
             </p>
           </div>
 
@@ -296,8 +273,8 @@ export default function Home() {
               </h2>
 
               <p className="mt-4 max-w-xl leading-7 text-[#78847c]">
-                Discover opportunities to volunteer, support your community
-                and make a difference together.
+                Discover opportunities to volunteer, support your
+                community and make a difference together.
               </p>
             </div>
 
@@ -321,12 +298,16 @@ export default function Home() {
           ) : events.length === 0 ? (
             <div className="mt-12 rounded-3xl bg-white p-12 text-center shadow-sm">
               <div className="text-5xl">🌱</div>
+
               <h3 className="mt-5 text-2xl font-bold">
                 No Upcoming Events Yet
               </h3>
+
               <p className="mt-3 text-gray-500">
-                Be the first to create an event and inspire your community.
+                Be the first to create an event and inspire your
+                community.
               </p>
+
               <Link
                 href="/login"
                 className="mt-7 inline-block rounded-full bg-[#183c2e] px-7 py-3 font-bold text-white"
@@ -359,15 +340,15 @@ export default function Home() {
                   <div className="p-6">
                     <div className="flex items-center gap-2 text-sm text-[#e47b52]">
                       <span>📅</span>
+
                       <span className="font-semibold">
-                        {new Date(event.eventDate).toLocaleDateString(
-                          "en-US",
-                          {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          }
-                        )}
+                        {new Date(
+                          event.eventDate
+                        ).toLocaleDateString("en-US", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
                       </span>
                     </div>
 
@@ -413,8 +394,8 @@ export default function Home() {
             </h2>
 
             <p className="mt-5 leading-7 text-[#78847c]">
-              Every smile, every helping hand and every small action creates
-              a story worth sharing.
+              Every smile, every helping hand and every small action
+              creates a story worth sharing.
             </p>
           </div>
 
@@ -423,9 +404,7 @@ export default function Home() {
               <div
                 key={item.title}
                 className={`group relative overflow-hidden rounded-3xl ${
-                  index === 1 || index === 2
-                    ? "mt-8"
-                    : ""
+                  index === 1 || index === 2 ? "mt-8" : ""
                 }`}
               >
                 <img
@@ -462,8 +441,9 @@ export default function Home() {
             </h2>
 
             <p className="mt-6 max-w-lg leading-7 text-[#68766e]">
-              Join GOODWAVE and become part of a growing community of people
-              who care about the future. Start with one small action today.
+              Join GOODWAVE and become part of a growing community
+              of people who care about the future. Start with one
+              small action today.
             </p>
 
             <Link
@@ -498,8 +478,8 @@ export default function Home() {
           </h2>
 
           <p className="mx-auto mt-5 max-w-xl leading-7 text-gray-300">
-            Get community stories, upcoming events and opportunities to
-            make a positive impact delivered to your inbox.
+            Get community stories, upcoming events and opportunities
+            to make a positive impact delivered to your inbox.
           </p>
 
           <form
@@ -534,74 +514,6 @@ export default function Home() {
           </p>
         </div>
       </section>
-
-      {/* FOOTER */}
-      <footer className="bg-[#102b21] px-5 pb-8 pt-16 text-white lg:px-8">
-        <div className="mx-auto grid max-w-7xl gap-12 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="lg:col-span-2">
-            <Link href="/" className="text-3xl font-black tracking-tight">
-              GOOD<span className="text-[#e47b52]">WAVE.</span>
-            </Link>
-
-            <p className="mt-5 max-w-md leading-7 text-gray-400">
-              We believe small actions can create lasting impact. GOODWAVE
-              brings people together to build stronger communities and a
-              better world.
-            </p>
-
-            <div className="mt-7 flex gap-3">
-              {["f", "𝕏", "in", "◎"].map((social) => (
-                <span
-                  key={social}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-sm font-bold text-white transition hover:border-[#e47b52] hover:bg-[#e47b52]"
-                >
-                  {social}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold">Explore</h3>
-            <div className="mt-6 flex flex-col gap-4 text-sm text-gray-400">
-              <Link href="/" className="hover:text-[#e47b52]">
-                Home
-              </Link>
-              <Link href="/events" className="hover:text-[#e47b52]">
-                Upcoming Events
-              </Link>
-              <Link href="/login" className="hover:text-[#e47b52]">
-                Login
-              </Link>
-              <Link href="/register" className="hover:text-[#e47b52]">
-                Join Community
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold">Get Involved</h3>
-            <div className="mt-6 flex flex-col gap-4 text-sm text-gray-400">
-              <Link href="/events" className="hover:text-[#e47b52]">
-                Discover Events
-              </Link>
-              <Link href="/login" className="hover:text-[#e47b52]">
-                Create an Event
-              </Link>
-              <Link href="/register" className="hover:text-[#e47b52]">
-                Become a Volunteer
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="mx-auto mt-14 flex max-w-7xl flex-col justify-between gap-4 border-t border-white/10 pt-7 text-sm text-gray-500 sm:flex-row">
-          <p>
-            © {new Date().getFullYear()} GOODWAVE. All rights reserved.
-          </p>
-          <p>Small Actions. Lasting Impact. 💚</p>
-        </div>
-      </footer>
-    </main>
+    </div>
   );
 }

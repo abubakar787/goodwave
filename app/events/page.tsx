@@ -4,6 +4,23 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import {
+  Heart,
+  Settings,
+  Eye,
+  MapPin,
+  CalendarDays,
+} from "lucide-react";
+
 type Event = {
   _id: string;
   title: string;
@@ -25,6 +42,17 @@ const categories = [
   "Education",
 ];
 
+const fallbackImage =
+  "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=900";
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("ALL");
@@ -32,12 +60,16 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch Upcoming Events from Backend
+  // Fetch upcoming events from Express backend
   useEffect(() => {
     const fetchEvents = async () => {
       try {
+        setLoading(true);
+        setError("");
+
         const response = await fetch(
-          "http://localhost:8000/api/events"
+          "http://localhost:8000/api/events",
+          { cache: "no-store" }
         );
 
         if (!response.ok) {
@@ -51,9 +83,9 @@ export default function EventsPage() {
         } else {
           throw new Error("Invalid events response");
         }
-      } catch (error) {
-        console.error("Events fetching error:", error);
-        setError("Unable to load events. Please try again later.");
+      } catch (err) {
+        console.error("Events fetching error:", err);
+        setError("Unable to load events. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -62,8 +94,10 @@ export default function EventsPage() {
     fetchEvents();
   }, []);
 
-  // Filter Events by Category and Search
+  // Filter events by category, search and upcoming date
   const filteredEvents = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase();
+
     return events.filter((event) => {
       const isUpcoming =
         event.eventDate &&
@@ -74,255 +108,246 @@ export default function EventsPage() {
         event.eventType?.toLowerCase() ===
           selectedCategory.toLowerCase();
 
-      const search = searchTerm.trim().toLowerCase();
-
       const matchesSearch =
-        event.title.toLowerCase().includes(search) ||
-        event.location.toLowerCase().includes(search);
+        event.title?.toLowerCase().includes(search) ||
+        event.location?.toLowerCase().includes(search) ||
+        event.description?.toLowerCase().includes(search);
 
       return isUpcoming && matchesCategory && matchesSearch;
     });
   }, [events, selectedCategory, searchTerm]);
 
+  const resetFilters = () => {
+    setSelectedCategory("ALL");
+    setSearchTerm("");
+  };
+
+  // Join Event - API will be connected after Better Auth
+  const handleJoinEvent = (eventId: string) => {
+    console.log("Join Event requested:", eventId);
+    // Authentication and Join API will be implemented later.
+  };
+
   return (
     <main className="min-h-screen bg-[#fafaf7] text-[#183c2e]">
 
-      {/* HERO SECTION */}
-      <section className="bg-[#183c2e] px-5 py-20 text-white lg:px-8">
-        <div className="mx-auto max-w-7xl">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-[#183c2e] px-5 py-20 text-white sm:py-24 lg:px-8">
+        <div className="absolute -right-20 -top-32 h-96 w-96 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-40 left-1/3 h-80 w-80 rounded-full bg-[#e47b52]/10 blur-3xl" />
 
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#f09a73]">
+        <div className="relative mx-auto max-w-7xl">
+          <Badge className="border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#f3a17e] hover:bg-white/10">
             Future Community Drives
-          </p>
+          </Badge>
 
-          <div className="mt-5 flex flex-col justify-between gap-7 md:flex-row md:items-center">
-
-            <div>
-              <h1 className="text-4xl font-black sm:text-6xl">
+          <div className="mt-8 flex flex-col justify-between gap-10 md:flex-row md:items-center">
+            <div className="max-w-3xl">
+              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-7xl">
                 Upcoming Events
               </h1>
 
-              <p className="mt-5 max-w-2xl leading-7 text-gray-300">
+              <p className="mt-6 max-w-2xl text-base leading-8 text-white/75 sm:text-lg">
                 Discover meaningful community activities, connect
                 with volunteers and become part of something
                 meaningful. Every small action creates a big impact.
               </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-3 text-sm text-white/70">
+                <span className="rounded-full border border-white/20 px-4 py-2">
+                  Make a difference
+                </span>
+
+                <span className="rounded-full border border-white/20 px-4 py-2">
+                  Meet your community
+                </span>
+              </div>
             </div>
 
-            <Link
-              href="/create-event"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#e47b52] px-7 py-4 font-bold text-white transition hover:-translate-y-1 hover:bg-[#c9613b]"
-            >
-              <span className="text-xl">+</span>
-              Create Event
+            <Link href="/create-event">
+              <Button
+                size="lg"
+                className="h-14 rounded-full bg-[#e47b52] px-8 text-base font-semibold text-white hover:bg-[#cf6842]"
+              >
+                <span className="mr-2 text-xl">+</span>
+                Create Event
+              </Button>
             </Link>
-
           </div>
         </div>
       </section>
 
-      {/* EVENTS SECTION */}
-      <section className="mx-auto max-w-7xl px-5 py-20 lg:px-8">
+      {/* Events Listing */}
+      <section className="mx-auto max-w-7xl px-5 py-16 sm:py-20 lg:px-8">
 
-        {/* SECTION TITLE */}
+        {/* Section Heading */}
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#e47b52]">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#e47b52]">
               Find Your Opportunity
             </p>
 
-            <h2 className="mt-4 text-3xl font-black sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
               Explore All Events
             </h2>
 
-            <p className="mt-3 text-sm text-[#78847c]">
+            <p className="mt-3 text-sm leading-6 text-[#78847c] sm:text-base">
               Find an event and make a positive difference.
             </p>
           </div>
 
-          <div className="text-sm font-semibold text-[#78847c]">
-            {loading ? "Loading events..." : `${filteredEvents.length} events found`}
-          </div>
-
+          <p className="text-sm font-medium text-[#78847c]">
+            {loading
+              ? "Loading events..."
+              : `${filteredEvents.length} events found`}
+          </p>
         </div>
 
-        {/* CATEGORY FILTER */}
-        <div className="mt-10 flex flex-wrap gap-3">
-
+        {/* Category Filters */}
+        <div className="mt-9 flex flex-wrap gap-2.5">
           {categories.map((category) => (
-            <button
+            <Button
               key={category}
+              type="button"
+              variant={
+                selectedCategory === category ? "default" : "outline"
+              }
               onClick={() => setSelectedCategory(category)}
-              className={`rounded-full px-5 py-3 text-sm font-bold transition ${
+              className={
                 selectedCategory === category
-                  ? "bg-[#183c2e] text-white shadow-lg"
-                  : "border border-[#e5e8e2] bg-white text-[#52675b] hover:border-[#183c2e] hover:text-[#183c2e]"
-              }`}
+                  ? "rounded-full bg-[#183c2e] px-5 text-white hover:bg-[#285541]"
+                  : "rounded-full border-[#e5e8e2] bg-white px-5 text-[#52675b] hover:border-[#183c2e] hover:bg-[#eef2ed]"
+              }
             >
-              {category === "ALL" ? "All" : category}
-            </button>
+              {category === "ALL" ? "All Events" : category}
+            </Button>
           ))}
-
         </div>
 
-        {/* SEARCH BAR */}
-        <div className="mt-7 flex flex-col gap-4 sm:flex-row">
+        {/* Search and Reset */}
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg text-[#78847c]">
+              ⌕
+            </span>
 
-          <div className="flex flex-1 items-center gap-3 rounded-2xl border border-[#e5e8e2] bg-white px-5 py-4 shadow-sm">
-
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="21"
-              height="21"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-[#78847c]"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-
-            <input
-              type="text"
+            <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search events or areas..."
-              className="w-full bg-transparent text-sm text-[#183c2e] outline-none placeholder:text-[#9aa49d]"
+              placeholder="Search events, locations or descriptions..."
+              className="h-12 rounded-xl border-[#e5e8e2] bg-white pl-11 text-[#183c2e] shadow-sm placeholder:text-[#9aa49d] focus-visible:ring-[#183c2e]"
             />
-
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="text-sm font-bold text-[#e47b52]"
-              >
-                Clear
-              </button>
-            )}
-
           </div>
 
-          <button
-            onClick={() => {
-              setSelectedCategory("ALL");
-              setSearchTerm("");
-            }}
-            className="rounded-2xl border border-[#e5e8e2] bg-white px-7 py-4 text-sm font-bold transition hover:bg-[#e8eee7]"
+          <Button
+            type="button"
+            variant="outline"
+            onClick={resetFilters}
+            className="h-12 rounded-xl border-[#e5e8e2] bg-white px-6 text-[#52675b] hover:bg-[#eef2ed]"
           >
             Reset Filters
-          </button>
-
+          </Button>
         </div>
 
-        {/* LOADING SKELETON */}
-        {loading ? (
-
-          <div className="mt-12 grid gap-7 md:grid-cols-2 lg:grid-cols-3">
-
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <div
-                key={item}
-                className="h-[420px] animate-pulse rounded-3xl bg-[#e9eee8]"
-              />
-            ))}
-
-          </div>
-
-        ) : error ? (
-
-          /* ERROR MESSAGE */
-          <div className="mt-12 rounded-3xl bg-white p-12 text-center shadow-sm">
-
-            <div className="text-5xl">⚠️</div>
-
-            <h3 className="mt-5 text-2xl font-bold">
-              Something Went Wrong
-            </h3>
-
-            <p className="mt-3 text-[#78847c]">
-              {error}
-            </p>
-
-          </div>
-
-        ) : filteredEvents.length === 0 ? (
-
-          /* EMPTY STATE */
-          <div className="mt-12 rounded-3xl bg-white px-6 py-16 text-center shadow-sm">
-
-            <div className="text-6xl">🌱</div>
-
-            <h3 className="mt-6 text-2xl font-black">
-              No Events Found
-            </h3>
-
-            <p className="mx-auto mt-3 max-w-md leading-7 text-[#78847c]">
-              We couldn't find any upcoming events matching your
-              search. Try another category or search keyword.
-            </p>
-
-            <button
-              onClick={() => {
-                setSelectedCategory("ALL");
-                setSearchTerm("");
-              }}
-              className="mt-7 rounded-full bg-[#183c2e] px-7 py-3 font-bold text-white transition hover:bg-[#e47b52]"
-            >
-              Show All Events
-            </button>
-
-          </div>
-
-        ) : (
-
-          /* EVENT CARDS */
-          <div className="mt-12 grid gap-7 md:grid-cols-2 lg:grid-cols-3">
-
-            {filteredEvents.map((event) => (
-
-              <article
-                key={event._id}
-                className="group overflow-hidden rounded-3xl border border-[#e9e9e2] bg-white transition duration-300 hover:-translate-y-2 hover:shadow-xl"
+        {/* Loading Skeleton */}
+        {loading && (
+          <div className="mt-10 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Card
+                key={index}
+                className="overflow-hidden rounded-2xl border-[#e9e9e2] bg-white"
               >
+                <Skeleton className="h-60 w-full rounded-none bg-[#e9eee8]" />
 
-                {/* EVENT IMAGE */}
-                <div className="relative overflow-hidden">
+                <CardContent className="space-y-4 p-6">
+                  <Skeleton className="h-5 w-2/3 bg-[#e9eee8]" />
+                  <Skeleton className="h-4 w-full bg-[#e9eee8]" />
+                  <Skeleton className="h-4 w-4/5 bg-[#e9eee8]" />
+                  <Skeleton className="mt-5 h-10 w-full bg-[#e9eee8]" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
+        {/* Error State */}
+        {!loading && error && (
+          <Card className="mt-10 rounded-2xl border-red-100 bg-white">
+            <CardContent className="flex flex-col items-center px-6 py-16 text-center">
+              <span className="text-5xl">⚠️</span>
+
+              <h3 className="mt-5 text-2xl font-bold text-[#183c2e]">
+                Something Went Wrong
+              </h3>
+
+              <p className="mt-3 max-w-md text-sm leading-7 text-[#78847c]">
+                {error}
+              </p>
+
+              <Button
+                onClick={() => window.location.reload()}
+                className="mt-6 rounded-full bg-[#183c2e] px-7 hover:bg-[#285541]"
+              >
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && filteredEvents.length === 0 && (
+          <Card className="mt-10 rounded-2xl border-[#e9e9e2] bg-white">
+            <CardContent className="flex flex-col items-center px-6 py-16 text-center">
+              <span className="text-6xl">🌱</span>
+
+              <h3 className="mt-6 text-2xl font-bold text-[#183c2e]">
+                No Events Found
+              </h3>
+
+              <p className="mt-3 max-w-md text-sm leading-7 text-[#78847c]">
+                We couldn't find any upcoming events matching your
+                search. Try another category or search keyword.
+              </p>
+
+              <Button
+                onClick={resetFilters}
+                className="mt-7 rounded-full bg-[#183c2e] px-7 hover:bg-[#285541]"
+              >
+                Show All Events
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Event Cards */}
+        {!loading && !error && filteredEvents.length > 0 && (
+          <div className="mt-10 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredEvents.map((event) => (
+              <Card
+                key={event._id}
+                className="group overflow-hidden rounded-2xl border-[#e9e9e2] bg-white py-0 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+              >
+                {/* Image */}
+                <div className="relative h-60 overflow-hidden">
                   <img
-                    src={
-                      event.thumbnail ||
-                      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800"
-                    }
+                    src={event.thumbnail || fallbackImage}
                     alt={event.title}
-                    className="h-60 w-full object-cover transition duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />
 
-                  <span className="absolute left-5 top-5 rounded-full bg-white px-4 py-2 text-xs font-bold text-[#315c46] shadow">
+                  <Badge className="absolute left-4 top-4 border-0 bg-white px-4 py-2 text-xs font-semibold text-[#315c46] shadow-sm hover:bg-white">
                     {event.eventType}
-                  </span>
+                  </Badge>
 
-                  <span className="absolute bottom-4 left-4 rounded-lg bg-[#183c2e]/90 px-3 py-2 text-xs font-semibold text-white">
-                    📅{" "}
-                    {new Date(event.eventDate).toLocaleDateString(
-                      "en-US",
-                      {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      }
-                    )}
-                  </span>
-
+                  <div className="absolute bottom-4 left-4 rounded-lg bg-[#183c2e]/90 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm">
+                    <CalendarDays className="mr-1 inline-block h-3.5 w-3.5" />
+                    {formatDate(event.eventDate)}
+                  </div>
                 </div>
 
-                {/* EVENT INFORMATION */}
-                <div className="p-6">
-
-                  <h3 className="line-clamp-1 text-xl font-black text-[#183c2e]">
+                {/* Card Content */}
+                <CardContent className="p-6">
+                  <h3 className="line-clamp-1 text-xl font-bold text-[#183c2e]">
                     {event.title}
                   </h3>
 
@@ -331,59 +356,87 @@ export default function EventsPage() {
                       "Join us and become part of a positive change in your community."}
                   </p>
 
-                  <div className="mt-5 flex items-center justify-between border-t border-[#eeeeea] pt-5">
-
-                    <span className="text-sm text-[#78847c]">
-                      📍 {event.location}
+                  <div className="mt-5 flex items-center gap-2 border-t border-[#eeeeea] pt-5 text-sm text-[#78847c]">
+                    <MapPin size={16} className="shrink-0" />
+                    <span className="line-clamp-1">
+                      {event.location}
                     </span>
-
-                    <Link
-                      href={`/events/${event._id}`}
-                      className="font-bold text-[#315c46] transition hover:text-[#e47b52]"
-                    >
-                      View Event →
-                    </Link>
-
                   </div>
 
-                </div>
+                  {/* Event Actions */}
+                  <div className="mt-5 grid grid-cols-3 gap-2">
+                    {/* JOIN BUTTON */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => handleJoinEvent(event._id)}
+                      className="rounded-full bg-[#e47b52] px-2 text-white hover:bg-[#cf6842]"
+                    >
+                      <Heart className="mr-1 h-4 w-4" />
+                      Join
+                    </Button>
 
-              </article>
+                    {/* MANAGE BUTTON */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled
+                      title="Available after authentication and ownership verification"
+                      className="cursor-not-allowed rounded-full border-[#e5e8e2] px-2 text-[#9aa49d]"
+                    >
+                      <Settings className="mr-1 h-4 w-4" />
+                      Manage
+                    </Button>
 
+                    {/* VIEW BUTTON */}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full px-2 font-semibold text-[#315c46] hover:bg-[#eef2ed] hover:text-[#e47b52]"
+                      onClick={() => {
+                        window.location.href = `/events/${event._id}`;
+                      }}
+                    >
+                      <Eye className="mr-1 h-4 w-4" />
+                      View
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-
           </div>
-
         )}
-
       </section>
 
-      {/* BOTTOM CTA */}
+      {/* Bottom CTA */}
       <section className="bg-[#e9eee7] px-5 py-16 lg:px-8">
-
         <div className="mx-auto flex max-w-7xl flex-col justify-between gap-7 md:flex-row md:items-center">
-
           <div>
-            <h2 className="text-3xl font-black">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#e47b52]">
+              Be The Change
+            </p>
+
+            <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
               Have an idea to help your community?
             </h2>
 
-            <p className="mt-3 text-[#68766e]">
+            <p className="mt-3 text-sm leading-7 text-[#68766e] sm:text-base">
               Create an event and inspire others to make a difference.
             </p>
           </div>
 
-          <Link
-            href="/create-event"
-            className="inline-flex items-center justify-center rounded-full bg-[#183c2e] px-8 py-4 font-bold text-white transition hover:bg-[#e47b52]"
-          >
-            + Create an Event
+          <Link href="/create-event">
+            <Button
+              size="lg"
+              className="h-12 rounded-full bg-[#183c2e] px-8 text-white hover:bg-[#285541]"
+            >
+              + Create an Event
+            </Button>
           </Link>
-
         </div>
-
       </section>
-
     </main>
   );
 }
