@@ -2,7 +2,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import {
   UserRound,
   Mail,
@@ -18,11 +20,16 @@ import {
   CalendarDays,
   BriefcaseBusiness,
   Users,
+  Loader2,
 } from "lucide-react";
+
+import { signUp } from "@/lib/auth-client";
 
 const DEFAULT_AVATAR = "https://i.pravatar.cc/300?img=12";
 
 export default function RegisterPage() {
+  const router = useRouter();
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [image, setImage] = useState("");
@@ -35,6 +42,9 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [imageError, setImageError] = useState(false);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registerError, setRegisterError] = useState("");
 
   const profileImage =
     image.trim() && !imageError ? image.trim() : DEFAULT_AVATAR;
@@ -62,30 +72,75 @@ export default function RegisterPage() {
     },
   ];
 
-  const isPasswordValid = passwordRules.every((rule) => rule.valid);
+  const isPasswordValid = passwordRules.every(
+    (rule) => rule.valid
+  );
 
   const passwordsMatch =
-    confirmPassword.length > 0 && password === confirmPassword;
+    confirmPassword.length > 0 &&
+    password === confirmPassword;
 
-  const handleRegister = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRegister = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
-    if (!isPasswordValid || !passwordsMatch) return;
+    if (isSubmitting) return;
 
-    if (!gender || !birthDate || !profession) return;
+    if (!isPasswordValid) {
+      setRegisterError("Please create a strong password.");
+      return;
+    }
 
-    const userData = {
-      name: fullName.trim(),
-      email: email.trim(),
-      image: profileImage,
-      gender,
-      birthDate,
-      profession,
-      password,
-    };
+    if (!passwordsMatch) {
+      setRegisterError("Passwords do not match.");
+      return;
+    }
 
-    // Better Auth registration will be connected later.
-    console.log("Registration data:", userData);
+    if (!gender || !birthDate || !profession) {
+      setRegisterError("Please complete all required fields.");
+      return;
+    }
+
+    if (birthDate > new Date().toLocaleDateString("en-CA")) {
+      setRegisterError("Date of birth cannot be in the future.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setRegisterError("");
+
+      const { error } = await signUp.email({
+        name: fullName.trim(),
+        email: email.trim(),
+        password,
+        image: profileImage,
+        gender,
+        birthDate,
+        profession,
+      });
+
+      if (error) {
+        setRegisterError(
+          error.message || "Registration failed. Please try again."
+        );
+        return;
+      }
+
+      router.push("/profile");
+      router.refresh();
+    } catch (error) {
+      console.error("Registration error:", error);
+
+      setRegisterError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -313,7 +368,7 @@ export default function RegisterPage() {
                   id="birthDate"
                   type="date"
                   required
-                  max={new Date().toISOString().split("T")[0]}
+                  max={new Date().toLocaleDateString("en-CA")}
                   value={birthDate}
                   onChange={(e) => setBirthDate(e.target.value)}
                   className="h-14 w-full rounded-2xl border border-[#e1e5e9] bg-white px-4 text-sm text-[#183c2e] outline-none focus:border-[#183c2e]"
@@ -402,11 +457,7 @@ export default function RegisterPage() {
                           rule.valid ? "text-green-700" : "text-gray-500"
                         }`}
                       >
-                        {rule.valid ? (
-                          <Check size={14} />
-                        ) : (
-                          <X size={14} />
-                        )}
+                        {rule.valid ? <Check size={14} /> : <X size={14} />}
                         {rule.label}
                       </div>
                     ))}
@@ -471,10 +522,21 @@ export default function RegisterPage() {
                 )}
               </div>
 
+              {/* REGISTRATION ERROR */}
+              {registerError && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                >
+                  {registerError}
+                </div>
+              )}
+
               {/* CREATE ACCOUNT */}
               <button
                 type="submit"
                 disabled={
+                  isSubmitting ||
                   !isPasswordValid ||
                   !passwordsMatch ||
                   !fullName.trim() ||
@@ -485,8 +547,17 @@ export default function RegisterPage() {
                 }
                 className="flex h-14 w-full items-center justify-center gap-3 rounded-full bg-[#183c2e] font-bold text-white transition hover:bg-[#e47b52] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Create Account
-                <ArrowRight size={20} />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  <>
+                    Create Account
+                    <ArrowRight size={20} />
+                  </>
+                )}
               </button>
             </form>
 
@@ -502,7 +573,8 @@ export default function RegisterPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] transition hover:bg-[#f5f7f3]"
+                disabled
+                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] opacity-60"
               >
                 <span className="text-xl font-bold text-[#4285F4]">G</span>
                 Google
@@ -510,7 +582,8 @@ export default function RegisterPage() {
 
               <button
                 type="button"
-                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] transition hover:bg-[#f5f7f3]"
+                disabled
+                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] opacity-60"
               >
                 <svg
                   viewBox="0 0 24 24"

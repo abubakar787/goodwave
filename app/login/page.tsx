@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Mail,
   LockKeyhole,
@@ -11,19 +12,57 @@ import {
   ArrowRight,
   Heart,
   Sprout,
+  Loader2,
 } from "lucide-react";
 
+import { signIn } from "@/lib/auth-client";
+
 export default function LoginPage() {
+  const router = useRouter();
+
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Authentication will be connected with Better Auth later.
-    console.log({ email, password, rememberMe });
+    if (isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      setLoginError("");
+
+      const { error } = await signIn.email({
+        email: email.trim(),
+        password,
+        rememberMe,
+      });
+
+      if (error) {
+        setLoginError(
+          error.message || "Invalid email or password. Please try again."
+        );
+        return;
+      }
+
+      router.replace("/profile");
+      router.refresh();
+    } catch (error) {
+      console.error("Login error:", error);
+
+      setLoginError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -32,7 +71,6 @@ export default function LoginPage() {
 
         {/* LEFT SIDE */}
         <section className="relative flex min-h-[620px] flex-col justify-between overflow-hidden bg-[#183c2e] p-8 text-white sm:p-12 lg:p-14">
-
           <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full border border-white/10" />
           <div className="absolute -bottom-40 -left-20 h-96 w-96 rounded-full border border-white/10" />
 
@@ -193,13 +231,33 @@ export default function LoginPage() {
                 </Link>
               </div>
 
+              {/* LOGIN ERROR */}
+              {loginError && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                >
+                  {loginError}
+                </div>
+              )}
+
               {/* SIGN IN */}
               <button
                 type="submit"
-                className="flex h-16 w-full items-center justify-center gap-3 rounded-full bg-[#183c2e] font-bold text-white transition hover:bg-[#e47b52]"
+                disabled={isSubmitting || !email.trim() || !password}
+                className="flex h-16 w-full items-center justify-center gap-3 rounded-full bg-[#183c2e] font-bold text-white transition hover:bg-[#e47b52] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Sign In
-                <ArrowRight size={20} />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight size={20} />
+                  </>
+                )}
               </button>
             </form>
 
@@ -212,11 +270,12 @@ export default function LoginPage() {
               <div className="h-px flex-1 bg-[#e5e7eb]" />
             </div>
 
-            {/* SOCIAL LOGIN */}
+            {/* SOCIAL LOGIN - NOT CONFIGURED YET */}
             <div className="grid gap-4 sm:grid-cols-2">
               <button
                 type="button"
-                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] transition hover:bg-[#f5f7f3]"
+                disabled
+                className="flex h-14 cursor-not-allowed items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] opacity-60"
               >
                 <span className="text-xl font-bold text-[#4285F4]">G</span>
                 Google
@@ -224,7 +283,8 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] transition hover:bg-[#f5f7f3]"
+                disabled
+                className="flex h-14 cursor-not-allowed items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] opacity-60"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -247,7 +307,6 @@ export default function LoginPage() {
                 Create account
               </Link>
             </p>
-
           </div>
         </section>
       </div>
