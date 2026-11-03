@@ -1,4 +1,3 @@
-
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -35,8 +34,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+  className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}    >
       <body className="flex min-h-screen flex-col bg-[#fafaf7]">
         <Navbar />
         <main className="flex-1">{children}</main>

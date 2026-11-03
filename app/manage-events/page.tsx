@@ -175,7 +175,7 @@ export default function ManageEventsPage() {
             href="/create-event"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#183c2e] px-6 text-sm font-bold text-white transition hover:bg-[#e47b52]"
           >
-            <Plus size={18} />
+            <Plus size={20} />
             Create New Event
           </Link>
         </div>
