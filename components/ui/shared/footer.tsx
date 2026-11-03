@@ -96,7 +96,7 @@ export default function Footer() {
         <div className="flex flex-col items-center justify-between gap-4 text-center text-sm text-white/60 md:flex-row md:text-left">
           
           <p>
-            © {new Date().getFullYear()} GOODWAVE. All rights reserved.
+            2026 GOODWAVE. All rights reserved.
           </p>
 
           <p>Made for people who want to make a difference.</p>

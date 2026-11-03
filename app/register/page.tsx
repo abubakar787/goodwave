@@ -240,7 +240,7 @@ export default function RegisterPage() {
           </div>
 
           <p className="relative z-10 text-xs tracking-wide text-white/50">
-            © {new Date().getFullYear()} GOODWAVE. All rights reserved.
+             GOODWAVE. All rights reserved.
           </p>
         </section>
 
@@ -404,14 +404,13 @@ export default function RegisterPage() {
                 </label>
 
                 <input
-                  id="birthDate"
-                  type="date"
-                  required
-                  max={new Date().toLocaleDateString("en-CA")}
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                  className="h-14 w-full rounded-2xl border border-[#e1e5e9] bg-white px-4 text-sm text-[#183c2e] outline-none focus:border-[#183c2e]"
-                />
+  type="date"
+  required
+  max="2026-11-03"
+  value={birthDate}
+  onChange={(e) => setBirthDate(e.target.value)}
+  className="h-14 w-full rounded-2xl border border-[#e1e5e9] bg-white px-4 text-sm text-[#183c2e]"
+/>
               </div>
 
               {/* PROFESSION */}

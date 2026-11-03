@@ -1,7 +1,6 @@
- 
-"use client";
+ "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -79,7 +78,7 @@ function getEventForm(event: EventData): EventForm {
   };
 }
 
-export default function EventDetailsPage() {
+function EventDetailsContent() {
   const params = useParams();
   const router = useRouter();
 
@@ -868,5 +867,18 @@ useEffect(() => {
         </div>
       </div>
     </main>
+  );
+}
+export default function EventDetailsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="animate-spin" size={32} />
+        </div>
+      }
+    >
+      <EventDetailsContent />
+    </Suspense>
   );
 }

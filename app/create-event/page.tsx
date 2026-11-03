@@ -33,20 +33,20 @@ const eventCategories = [
   "Education",
 ];
 
-function getLocalDate() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
 export default function CreateEventPage() {
   const router = useRouter();
-
-  // AUTHENTICATION
   const { data: session, isPending } = useSession();
+
+  const [today, setToday] = useState("");
+
+  useEffect(() => {
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const day = String(currentDate.getDate()).padStart(2, "0");
+
+    setToday(`${year}-${month}-${day}`);
+  }, []);
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -54,7 +54,6 @@ export default function CreateEventPage() {
     }
   }, [isPending, session, router]);
 
-  // FORM STATES
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [eventType, setEventType] = useState("");
@@ -64,12 +63,8 @@ export default function CreateEventPage() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error" | "">(
-    ""
-  );
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [imageError, setImageError] = useState(false);
-
-  const today = getLocalDate();
 
   const showMessage = (
     text: string,
@@ -79,7 +74,6 @@ export default function CreateEventPage() {
     setMessageType(type);
   };
 
-  // CREATE EVENT
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -124,17 +118,13 @@ export default function CreateEventPage() {
     try {
       setLoading(true);
 
-      // STEP 1: Get JWT Token
       const { data: tokenData, error: tokenError } =
         await authClient.token();
 
       if (tokenError || !tokenData?.token) {
-        throw new Error(
-          "Authentication required. Please login again."
-        );
+        throw new Error("Authentication required. Please login again.");
       }
 
-      // STEP 2: Prepare Event Data
       const eventData = {
         title: title.trim(),
         description: description.trim(),
@@ -144,7 +134,6 @@ export default function CreateEventPage() {
         eventDate,
       };
 
-      // STEP 3: Send Request with JWT
       const response = await fetch(API_URL, {
         method: "POST",
         headers: {
@@ -157,9 +146,7 @@ export default function CreateEventPage() {
       const result = await response.json();
 
       if (!response.ok || result.success === false) {
-        throw new Error(
-          result.message || "Failed to create event."
-        );
+        throw new Error(result.message || "Failed to create event.");
       }
 
       showMessage(
@@ -168,9 +155,9 @@ export default function CreateEventPage() {
       );
 
       setTimeout(() => {
-  router.push("/manage-events");
-  router.refresh();
-}, 1200);
+        router.push("/manage-events");
+        router.refresh();
+      }, 1200);
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -189,14 +176,10 @@ export default function CreateEventPage() {
   const labelClass =
     "mb-2 flex items-center gap-2 text-sm font-bold text-[#183c2e]";
 
-  // WAIT FOR AUTHENTICATION
   if (isPending || !session) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#fafaf7]">
-        <Loader2
-          className="animate-spin text-[#183c2e]"
-          size={32}
-        />
+        <Loader2 className="animate-spin text-[#183c2e]" size={32} />
       </div>
     );
   }
@@ -204,8 +187,6 @@ export default function CreateEventPage() {
   return (
     <main className="min-h-screen bg-[#fafaf7] px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
-
-        {/* BACK LINK */}
         <Link
           href="/events"
           className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-[#183c2e] transition hover:text-[#e47b52]"
@@ -214,7 +195,6 @@ export default function CreateEventPage() {
           Back to Upcoming Events
         </Link>
 
-        {/* PAGE HEADING */}
         <div className="mb-9">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#e9f0e9] px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#183c2e]">
             <Sprout size={15} />
@@ -231,25 +211,18 @@ export default function CreateEventPage() {
           </p>
         </div>
 
-        {/* FORM LAYOUT */}
         <div className="grid items-start gap-8 lg:grid-cols-[1fr_350px]">
-
-          {/* LEFT: FORM */}
           <section className="rounded-3xl border border-[#e9e9e2] bg-white p-5 shadow-sm sm:p-8">
-
             <div className="mb-8 border-b border-[#edf0eb] pb-6">
               <h2 className="text-xl font-bold text-[#183c2e]">
                 Event Information
               </h2>
-
               <p className="mt-2 text-sm text-gray-500">
                 Fill in the details below to publish your event.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-
-              {/* EVENT TITLE */}
               <div>
                 <label htmlFor="title" className={labelClass}>
                   <Type size={17} />
@@ -274,7 +247,6 @@ export default function CreateEventPage() {
                 </p>
               </div>
 
-              {/* DESCRIPTION */}
               <div>
                 <label htmlFor="description" className={labelClass}>
                   <FileText size={17} />
@@ -299,7 +271,6 @@ export default function CreateEventPage() {
                 </p>
               </div>
 
-              {/* CATEGORY */}
               <div>
                 <label htmlFor="eventType" className={labelClass}>
                   <Tag size={17} />
@@ -315,7 +286,6 @@ export default function CreateEventPage() {
                   className={`${inputClass} appearance-none`}
                 >
                   <option value="">Select an event category</option>
-
                   {eventCategories.map((category) => (
                     <option key={category} value={category}>
                       {category}
@@ -324,7 +294,6 @@ export default function CreateEventPage() {
                 </select>
               </div>
 
-              {/* THUMBNAIL URL */}
               <div>
                 <label htmlFor="thumbnail" className={labelClass}>
                   <ImagePlus size={17} />
@@ -349,7 +318,6 @@ export default function CreateEventPage() {
                   Add a publicly accessible image URL for your event.
                 </p>
 
-                {/* IMAGE PREVIEW */}
                 {thumbnail.trim() && (
                   <div className="mt-4 overflow-hidden rounded-2xl border border-[#e4e8e1] bg-[#f6f8f5]">
                     {!imageError ? (
@@ -370,7 +338,6 @@ export default function CreateEventPage() {
                       <span className="text-xs font-semibold text-[#183c2e]">
                         Image Preview
                       </span>
-
                       <span className="text-xs text-gray-400">
                         {imageError ? "Invalid image" : "Preview"}
                       </span>
@@ -379,7 +346,6 @@ export default function CreateEventPage() {
                 )}
               </div>
 
-              {/* LOCATION */}
               <div>
                 <label htmlFor="location" className={labelClass}>
                   <MapPin size={17} />
@@ -399,7 +365,6 @@ export default function CreateEventPage() {
                 />
               </div>
 
-              {/* EVENT DATE */}
               <div>
                 <label htmlFor="eventDate" className={labelClass}>
                   <CalendarDays size={17} />
@@ -411,7 +376,7 @@ export default function CreateEventPage() {
                   id="eventDate"
                   type="date"
                   required
-                  min={today}
+                  min={today || undefined}
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
                   className={inputClass}
@@ -422,7 +387,6 @@ export default function CreateEventPage() {
                 </p>
               </div>
 
-              {/* RESPONSE MESSAGE */}
               {message && (
                 <div
                   role="status"
@@ -437,12 +401,10 @@ export default function CreateEventPage() {
                   ) : (
                     <XCircle className="mt-0.5 shrink-0" size={19} />
                   )}
-
                   <p>{message}</p>
                 </div>
               )}
 
-              {/* ACTION BUTTONS */}
               <div className="flex flex-col-reverse gap-3 border-t border-[#edf0eb] pt-6 sm:flex-row sm:justify-end">
                 <Link
                   href="/events"
@@ -453,7 +415,7 @@ export default function CreateEventPage() {
 
                 <button
                   type="submit"
-                  disabled={loading || imageError}
+                  disabled={loading || imageError || !today}
                   className="flex h-13 items-center justify-center gap-3 rounded-full bg-[#183c2e] px-8 text-sm font-bold text-white transition hover:bg-[#e47b52] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? (
@@ -472,17 +434,13 @@ export default function CreateEventPage() {
             </form>
           </section>
 
-          {/* RIGHT: INFORMATION CARD */}
           <aside className="space-y-6">
-
-            {/* PREVIEW CARD */}
             <div className="overflow-hidden rounded-3xl border border-[#e9e9e2] bg-white shadow-sm">
               <div className="bg-[#183c2e] px-6 py-5 text-white">
                 <div className="flex items-center gap-2">
                   <Sprout size={19} className="text-[#a6d85d]" />
                   <h3 className="font-bold">Event Preview</h3>
                 </div>
-
                 <p className="mt-2 text-xs leading-5 text-white/70">
                   Your event information at a glance.
                 </p>
@@ -532,13 +490,14 @@ export default function CreateEventPage() {
                     />
                     <span>
                       {eventDate
-                        ? new Date(
-                            `${eventDate}T00:00:00`
-                          ).toLocaleDateString("en-GB", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })
+                        ? new Date(`${eventDate}T00:00:00`).toLocaleDateString(
+                            "en-GB",
+                            {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            }
+                          )
                         : "Event date"}
                     </span>
                   </div>
@@ -546,7 +505,6 @@ export default function CreateEventPage() {
               </div>
             </div>
 
-            {/* TIPS */}
             <div className="rounded-3xl border border-[#e9e9e2] bg-[#f0f3ec] p-6">
               <h3 className="font-bold text-[#183c2e]">
                 Tips for a great event

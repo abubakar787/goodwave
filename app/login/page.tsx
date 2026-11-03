@@ -159,7 +159,7 @@ export default function LoginPage() {
           </div>
 
           <p className="relative z-10 text-xs tracking-wide text-white/50">
-            © {new Date().getFullYear()} GOODWAVE. Small Actions. Lasting Impact.
+           © 2026 GOODWAVE. Small Actions. Lasting Impact.
           </p>
         </section>
 
