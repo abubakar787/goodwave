@@ -15,7 +15,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { signIn } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,18 +26,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<
+    "google" | "github" | null
+  >(null);
   const [loginError, setLoginError] = useState("");
 
+  // Email and Password Login
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (isSubmitting) return;
+    if (isSubmitting || socialLoading) return;
 
     try {
       setIsSubmitting(true);
       setLoginError("");
 
-      const { error } = await signIn.email({
+      const { error } = await authClient.signIn.email({
         email: email.trim(),
         password,
         rememberMe,
@@ -62,6 +66,38 @@ export default function LoginPage() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Google and GitHub Social Login
+  const handleSocialLogin = async (provider: "google" | "github") => {
+    if (isSubmitting || socialLoading) return;
+
+    try {
+      setSocialLoading(provider);
+      setLoginError("");
+
+      const { error } = await authClient.signIn.social({
+        provider,
+        callbackURL: "/profile",
+      });
+
+      if (error) {
+        setLoginError(
+          error.message || `${provider} login failed. Please try again.`
+        );
+        setSocialLoading(null);
+      }
+    } catch (error) {
+      console.error(`${provider} login error:`, error);
+
+      setLoginError(
+        error instanceof Error
+          ? error.message
+          : "Social login failed. Please try again."
+      );
+
+      setSocialLoading(null);
     }
   };
 
@@ -146,6 +182,7 @@ export default function LoginPage() {
               </p>
             </div>
 
+            {/* EMAIL LOGIN FORM */}
             <form onSubmit={handleLogin} className="mt-10 space-y-6">
 
               {/* EMAIL */}
@@ -244,7 +281,7 @@ export default function LoginPage() {
               {/* SIGN IN */}
               <button
                 type="submit"
-                disabled={isSubmitting || !email.trim() || !password}
+                disabled={isSubmitting || !!socialLoading || !email.trim() || !password}
                 className="flex h-16 w-full items-center justify-center gap-3 rounded-full bg-[#183c2e] font-bold text-white transition hover:bg-[#e47b52] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? (
@@ -270,30 +307,43 @@ export default function LoginPage() {
               <div className="h-px flex-1 bg-[#e5e7eb]" />
             </div>
 
-            {/* SOCIAL LOGIN - NOT CONFIGURED YET */}
+            {/* SOCIAL LOGIN */}
             <div className="grid gap-4 sm:grid-cols-2">
+
+              {/* GOOGLE */}
               <button
                 type="button"
-                disabled
-                className="flex h-14 cursor-not-allowed items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] opacity-60"
+                onClick={() => handleSocialLogin("google")}
+                disabled={isSubmitting || socialLoading !== null}
+                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] transition hover:border-[#4285F4] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <span className="text-xl font-bold text-[#4285F4]">G</span>
-                Google
+                {socialLoading === "google" ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <span className="text-xl font-bold text-[#4285F4]">G</span>
+                )}
+                {socialLoading === "google" ? "Connecting..." : "Google"}
               </button>
 
+              {/* GITHUB */}
               <button
                 type="button"
-                disabled
-                className="flex h-14 cursor-not-allowed items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] opacity-60"
+                onClick={() => handleSocialLogin("github")}
+                disabled={isSubmitting || socialLoading !== null}
+                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] transition hover:border-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-5 w-5 fill-current"
-                  aria-hidden="true"
-                >
-                  <path d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.76-.24.76-.54v-2.1c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.12.08 1.71 1.15 1.71 1.15 1 .1.1 2.18 2.5 1.67.1-.72.4-1.2.72-1.48-2.48-.28-5.09-1.24-5.09-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.08 1.15a10.7 10.7 0 0 1 5.6 0c2.14-1.45 3.08-1.15 3.08-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3 0 4.3-2.61 5.24-5.1 5.52.4.35.76 1.03.76 2.08v3.09c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .8Z" />
-                </svg>
-                GitHub
+                {socialLoading === "github" ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-5 w-5 fill-current"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.76-.24.76-.54v-2.1c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.12.08 1.71 1.15 1.71 1.15 1 .1.1 2.18 2.5 1.67.1-.72.4-1.2.72-1.48-2.48-.28-5.09-1.24-5.09-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.08 1.15a10.7 10.7 0 0 1 5.6 0c2.14-1.45 3.08-1.15 3.08-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3 0 4.3-2.61 5.24-5.1 5.52.4.35.76 1.03.76 2.08v3.09c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .8Z" />
+                  </svg>
+                )}
+                {socialLoading === "github" ? "Connecting..." : "GitHub"}
               </button>
             </div>
 
