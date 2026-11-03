@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
+import { jwt } from "better-auth/plugins";
 import { client, db } from "@/lib/mongodb";
 
 export const auth = betterAuth({
@@ -34,4 +35,6 @@ export const auth = betterAuth({
       },
     },
   },
+
+  plugins: [jwt()],
 });
