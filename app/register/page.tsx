@@ -23,7 +23,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { signUp } from "@/lib/auth-client";
+import { signUp, signIn } from "@/lib/auth-client";
 
 const DEFAULT_AVATAR = "https://i.pravatar.cc/300?img=12";
 
@@ -44,6 +44,9 @@ export default function RegisterPage() {
   const [imageError, setImageError] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<
+    "google" | "github" | null
+  >(null);
   const [registerError, setRegisterError] = useState("");
 
   const profileImage =
@@ -80,12 +83,13 @@ export default function RegisterPage() {
     confirmPassword.length > 0 &&
     password === confirmPassword;
 
+  // Email and password registration
   const handleRegister = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
 
-    if (isSubmitting) return;
+    if (isSubmitting || socialLoading) return;
 
     if (!isPasswordValid) {
       setRegisterError("Please create a strong password.");
@@ -140,6 +144,40 @@ export default function RegisterPage() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Google and GitHub registration / login
+  const handleSocialSignIn = async (
+    provider: "google" | "github"
+  ) => {
+    if (isSubmitting || socialLoading) return;
+
+    try {
+      setSocialLoading(provider);
+      setRegisterError("");
+
+      const { error } = await signIn.social({
+        provider,
+        callbackURL: "/profile",
+      });
+
+      if (error) {
+        setRegisterError(
+          error.message || `${provider} sign-in failed.`
+        );
+        setSocialLoading(null);
+      }
+    } catch (error) {
+      console.error(`${provider} OAuth error:`, error);
+
+      setRegisterError(
+        error instanceof Error
+          ? error.message
+          : "Social sign-in failed. Please try again."
+      );
+
+      setSocialLoading(null);
     }
   };
 
@@ -226,6 +264,7 @@ export default function RegisterPage() {
               </p>
             </div>
 
+            {/* REGISTRATION FORM */}
             <form onSubmit={handleRegister} className="mt-8 space-y-5">
 
               {/* PROFILE IMAGE */}
@@ -537,6 +576,7 @@ export default function RegisterPage() {
                 type="submit"
                 disabled={
                   isSubmitting ||
+                  socialLoading !== null ||
                   !isPasswordValid ||
                   !passwordsMatch ||
                   !fullName.trim() ||
@@ -571,28 +611,39 @@ export default function RegisterPage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
+              {/* GOOGLE */}
               <button
                 type="button"
-                disabled
-                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] opacity-60"
+                onClick={() => handleSocialSignIn("google")}
+                disabled={socialLoading !== null || isSubmitting}
+                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                
-                <span className="text-xl font-bold text-[#4285F4]">G</span>
+                {socialLoading === "google" ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <span className="text-xl font-bold text-[#4285F4]">G</span>
+                )}
                 Google
               </button>
 
+              {/* GITHUB */}
               <button
                 type="button"
-                disabled
-                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] opacity-60"
+                onClick={() => handleSocialSignIn("github")}
+                disabled={socialLoading !== null || isSubmitting}
+                className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-5 w-5 fill-current"
-                  aria-hidden="true"
-                >
-                  <path d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.76-.24.76-.54v-2.1c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.12.08 1.71 1.15 1.71 1.15 1 .1.1 2.18 2.5 1.67.1-.72.4-1.2.72-1.48-2.48-.28-5.09-1.24-5.09-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.08 1.15a10.7 10.7 0 0 1 5.6 0c2.14-1.45 3.08-1.15 3.08-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3 0 4.3-2.61 5.24-5.1 5.52.4.35.76 1.03.76 2.08v3.09c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .8Z" />
-                </svg>
+                {socialLoading === "github" ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-5 w-5 fill-current"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.76-.24.76-.54v-2.1c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.12.08 1.71 1.15 1.71 1.15 1 .1.1 2.18 2.5 1.67.1-.72.4-1.2.72-1.48-2.48-.28-5.09-1.24-5.09-5.52 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.08 1.15a10.7 10.7 0 0 1 5.6 0c2.14-1.45 3.08-1.15 3.08-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3 0 4.3-2.61 5.24-5.1 5.52.4.35.76 1.03.76 2.08v3.09c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .8Z" />
+                  </svg>
+                )}
                 GitHub
               </button>
             </div>
@@ -600,7 +651,6 @@ export default function RegisterPage() {
             {/* LOGIN LINK */}
             <p className="mt-8 text-center text-sm text-gray-500">
               Already have an account?{" "}
-
               <Link
                 href="/login"
                 className="font-bold text-[#e47b52] hover:text-[#183c2e]"
