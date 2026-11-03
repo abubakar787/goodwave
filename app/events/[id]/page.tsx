@@ -195,50 +195,49 @@ export default function EventDetailsPage() {
   }, [id]);
 
   // Check whether the current user has joined.
-  useEffect(() => {
-    if (!id || isPending || !session) {
-      setIsJoined(false);
-      return;
-    }
+useEffect(() => {
+  if (!id || isPending || !session) {
+    return;
+  }
 
-    let cancelled = false;
+  let cancelled = false;
 
-    const checkJoinStatus = async () => {
-      try {
-        const token = await getToken();
+  const checkJoinStatus = async () => {
+    try {
+      const token = await getToken();
 
-        const response = await fetch(
-          `${API_URL}/api/events/${id}/join-status`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            cache: "no-store",
-          }
+      const response = await fetch(
+        `${API_URL}/api/events/${id}/join-status`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) return;
+
+      if (!cancelled) {
+        setIsJoined(
+          Boolean(result.data?.joined ?? result.joined)
         );
-
-        const result = await response.json();
-
-        if (!response.ok) return;
-
-        if (!cancelled) {
-          setIsJoined(
-            Boolean(result.data?.joined ?? result.joined)
-          );
-        }
-      } catch {
-        if (!cancelled) {
-          setIsJoined(false);
-        }
       }
-    };
+    } catch {
+      if (!cancelled) {
+        setIsJoined(false);
+      }
+    }
+  };
 
-    checkJoinStatus();
+  checkJoinStatus();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [id, session, isPending]);
+  return () => {
+    cancelled = true;
+  };
+}, [id, session, isPending]);
 
   const formattedDate = event?.eventDate
     ? new Date(event.eventDate).toLocaleDateString(

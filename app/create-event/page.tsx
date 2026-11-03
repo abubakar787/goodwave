@@ -21,7 +21,7 @@ import {
 
 import { authClient, useSession } from "@/lib/auth-client";
 
-const API_URL = "http://localhost:8000/api/events";
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/events`;
 
 const eventCategories = [
   "Donation",

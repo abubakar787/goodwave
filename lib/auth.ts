@@ -10,8 +10,11 @@ export const auth = betterAuth({
   }),
 
   secret: process.env.BETTER_AUTH_SECRET,
-
   baseURL: process.env.BETTER_AUTH_URL,
+
+  emailAndPassword: {
+    enabled: true,
+  },
 
   account: {
     accountLinking: {
@@ -20,6 +23,7 @@ export const auth = betterAuth({
       allowDifferentEmails: false,
     },
   },
+
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -33,24 +37,24 @@ export const auth = betterAuth({
   },
 
   user: {
-  additionalFields: {
-    gender: {
-      type: "string",
-      required: false,
-      input: true,
-    },
-    birthDate: {
-      type: "string",
-      required: false,
-      input: true,
-    },
-    profession: {
-      type: "string",
-      required: false,
-      input: true,
+    additionalFields: {
+      gender: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      birthDate: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      profession: {
+        type: "string",
+        required: false,
+        input: true,
+      },
     },
   },
-},
 
   plugins: [jwt()],
 });
