@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -18,6 +18,8 @@ import {
   Sprout,
   XCircle,
 } from "lucide-react";
+
+import { authClient, useSession } from "@/lib/auth-client";
 
 const API_URL = "http://localhost:8000/api/events";
 
@@ -43,6 +45,16 @@ function getLocalDate() {
 export default function CreateEventPage() {
   const router = useRouter();
 
+  // AUTHENTICATION
+  const { data: session, isPending } = useSession();
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace("/login");
+    }
+  }, [isPending, session, router]);
+
+  // FORM STATES
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [eventType, setEventType] = useState("");
@@ -67,6 +79,7 @@ export default function CreateEventPage() {
     setMessageType(type);
   };
 
+  // CREATE EVENT
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -111,6 +124,17 @@ export default function CreateEventPage() {
     try {
       setLoading(true);
 
+      // STEP 1: Get JWT Token
+      const { data: tokenData, error: tokenError } =
+        await authClient.token();
+
+      if (tokenError || !tokenData?.token) {
+        throw new Error(
+          "Authentication required. Please login again."
+        );
+      }
+
+      // STEP 2: Prepare Event Data
       const eventData = {
         title: title.trim(),
         description: description.trim(),
@@ -120,10 +144,12 @@ export default function CreateEventPage() {
         eventDate,
       };
 
+      // STEP 3: Send Request with JWT
       const response = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${tokenData.token}`,
         },
         body: JSON.stringify(eventData),
       });
@@ -131,7 +157,9 @@ export default function CreateEventPage() {
       const result = await response.json();
 
       if (!response.ok || result.success === false) {
-        throw new Error(result.message || "Failed to create event.");
+        throw new Error(
+          result.message || "Failed to create event."
+        );
       }
 
       showMessage(
@@ -140,9 +168,9 @@ export default function CreateEventPage() {
       );
 
       setTimeout(() => {
-        router.push("/events");
-        router.refresh();
-      }, 1200);
+  router.push("/manage-events");
+  router.refresh();
+}, 1200);
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -160,6 +188,18 @@ export default function CreateEventPage() {
 
   const labelClass =
     "mb-2 flex items-center gap-2 text-sm font-bold text-[#183c2e]";
+
+  // WAIT FOR AUTHENTICATION
+  if (isPending || !session) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#fafaf7]">
+        <Loader2
+          className="animate-spin text-[#183c2e]"
+          size={32}
+        />
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#fafaf7] px-4 py-10 sm:px-6 lg:px-8">

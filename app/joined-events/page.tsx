@@ -1,7 +1,12 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import { authClient, useSession } from "@/lib/auth-client";
+
 import {
   ArrowLeft,
   Heart,
@@ -10,14 +15,171 @@ import {
   Compass,
   Sprout,
   Loader2,
+  Eye,
+  AlertCircle,
 } from "lucide-react";
 
-export default function JoinedEventsPage() {
-  // Authentication and joined-events API will be connected later.
-  // No demo events are displayed because the current user is not authenticated.
+type EventData = {
+  _id: string;
+  title: string;
+  description?: string;
+  eventType?: string;
+  thumbnail?: string;
+  location?: string;
+  eventDate: string;
+};
 
-  const joinedEvents: never[] = [];
-  const loading = false;
+type JoinedRecord = {
+  event?: EventData;
+  eventId?: string | { _id: string };
+  _id?: string;
+  title?: string;
+  description?: string;
+  eventType?: string;
+  thumbnail?: string;
+  location?: string;
+  eventDate?: string;
+};
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const fallbackImage =
+  "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=900";
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export default function JoinedEventsPage() {
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
+
+  const [joinedEvents, setJoinedEvents] = useState<EventData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!isPending && !session) {
+      router.replace(
+        "/login?callbackUrl=/joined-events"
+      );
+    }
+  }, [isPending, session, router]);
+
+  useEffect(() => {
+    if (isPending || !session) return;
+
+    let cancelled = false;
+
+    const fetchJoinedEvents = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const { data, error: tokenError } =
+          await authClient.token();
+
+        if (tokenError || !data?.token) {
+          throw new Error("Please login again to view your joined events.");
+        }
+
+        const response = await fetch(
+          `${API_URL}/api/joined-events`,
+          {
+            headers: {
+              Authorization: `Bearer ${data.token}`,
+            },
+            cache: "no-store",
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || result.success === false) {
+          throw new Error(
+            result.message || "Unable to load joined events."
+          );
+        }
+
+        if (!Array.isArray(result.data)) {
+          throw new Error("Invalid joined events response.");
+        }
+
+        // Supports both populated event objects and flattened records.
+        const normalizedEvents = result.data
+          .map((record: JoinedRecord) => {
+            const event = record.event || record;
+
+            const eventId =
+              event._id ||
+              (typeof record.eventId === "object"
+                ? record.eventId?._id
+                : record.eventId);
+
+            if (!eventId || !event.title || !event.eventDate) {
+              return null;
+            }
+
+            return {
+              ...event,
+              _id: String(eventId),
+            } as EventData;
+          })
+          .filter(
+            (event: EventData | null): event is EventData =>
+              event !== null
+          )
+          .sort(
+            (a: EventData, b: EventData) =>
+              new Date(a.eventDate).getTime() -
+              new Date(b.eventDate).getTime()
+          );
+
+        if (!cancelled) {
+          setJoinedEvents(normalizedEvents);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Something went wrong."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchJoinedEvents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, isPending]);
+
+  if (isPending || (!session && loading)) {
+    return (
+      <main className="flex min-h-[60vh] items-center justify-center bg-[#fafaf7]">
+        <Loader2
+          size={25}
+          className="animate-spin text-[#183c2e]"
+        />
+        <span className="ml-3 font-semibold text-[#183c2e]">
+          Loading your account...
+        </span>
+      </main>
+    );
+  }
+
+  if (!session) return null;
 
   return (
     <main className="min-h-screen bg-[#fafaf7] px-4 py-10 sm:px-6 lg:px-8">
@@ -88,12 +250,38 @@ export default function JoinedEventsPage() {
             </Link>
           </div>
 
-          {loading ? (
+          {/* LOADING */}
+          {loading && (
             <div className="flex min-h-64 items-center justify-center gap-3 text-sm font-semibold text-[#183c2e]">
               <Loader2 size={22} className="animate-spin" />
               Loading your events...
             </div>
-          ) : joinedEvents.length === 0 ? (
+          )}
+
+          {/* ERROR */}
+          {!loading && error && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700"
+            >
+              <AlertCircle size={20} className="shrink-0" />
+              <div>
+                <p className="font-semibold">
+                  Unable to load your joined events
+                </p>
+                <p className="mt-1">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-3 font-bold underline"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* EMPTY STATE */}
+          {!loading && !error && joinedEvents.length === 0 && (
             <div className="rounded-3xl border border-dashed border-[#dce4da] bg-white px-6 py-16 text-center sm:px-10">
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#e9f0e9] text-[#183c2e]">
                 <Heart size={34} />
@@ -116,12 +304,71 @@ export default function JoinedEventsPage() {
                 <Compass size={17} />
               </Link>
             </div>
-          ) : (
+          )}
+
+          {/* JOINED EVENT CARDS */}
+          {!loading && !error && joinedEvents.length > 0 && (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {joinedEvents.map((event) => (
-                <div key={event._id}>
-                  {/* Event cards will be rendered from the authenticated API. */}
-                </div>
+                <article
+                  key={event._id}
+                  className="overflow-hidden rounded-3xl border border-[#e9e9e2] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                >
+                  <div className="relative h-56 overflow-hidden bg-[#e9eee8]">
+                    <img
+                      src={event.thumbnail || fallbackImage}
+                      alt={event.title}
+                      className="h-full w-full object-cover"
+                    />
+
+                    {event.eventType && (
+                      <span className="absolute left-4 top-4 rounded-full bg-white px-4 py-2 text-xs font-bold text-[#183c2e] shadow-sm">
+                        {event.eventType}
+                      </span>
+                    )}
+
+                    <span className="absolute bottom-4 left-4 rounded-lg bg-[#183c2e]/90 px-3 py-2 text-xs font-semibold text-white">
+                      <CalendarDays className="mr-1 inline-block h-3.5 w-3.5" />
+                      {formatDate(event.eventDate)}
+                    </span>
+                  </div>
+
+                  <div className="p-6">
+                    <h3 className="line-clamp-1 text-xl font-bold text-[#183c2e]">
+                      {event.title}
+                    </h3>
+
+                    <p className="mt-3 line-clamp-2 min-h-12 text-sm leading-6 text-gray-500">
+                      {event.description ||
+                        "Be part of this meaningful community event."}
+                    </p>
+
+                    <div className="mt-5 flex items-center gap-2 border-t border-[#edf0eb] pt-5 text-sm text-gray-500">
+                      <MapPin
+                        size={17}
+                        className="shrink-0 text-[#e47b52]"
+                      />
+                      <span className="line-clamp-1">
+                        {event.location || "Location not specified"}
+                      </span>
+                    </div>
+
+                    <div className="mt-6 flex items-center justify-between gap-3">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-[#e9f0e9] px-4 py-2 text-xs font-bold text-[#183c2e]">
+                        <Heart size={14} />
+                        Joined
+                      </span>
+
+                      <Link
+                        href={`/events/${event._id}`}
+                        className="inline-flex h-10 items-center gap-2 rounded-full bg-[#183c2e] px-5 text-sm font-bold text-white transition hover:bg-[#e47b52]"
+                      >
+                        <Eye size={16} />
+                        View Event
+                      </Link>
+                    </div>
+                  </div>
+                </article>
               ))}
             </div>
           )}

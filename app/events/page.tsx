@@ -3,14 +3,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+import { authClient, useSession } from "@/lib/auth-client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import {
@@ -19,6 +19,7 @@ import {
   Eye,
   MapPin,
   CalendarDays,
+  Loader2,
 } from "lucide-react";
 
 type Event = {
@@ -30,6 +31,9 @@ type Event = {
   location: string;
   eventDate: string;
 };
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const categories = [
   "ALL",
@@ -54,47 +58,150 @@ function formatDate(date: string) {
 }
 
 export default function EventsPage() {
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
+
   const [events, setEvents] = useState<Event[]>([]);
+  const [myEventIds, setMyEventIds] = useState<string[]>([]);
+  const [joinedEventIds, setJoinedEventIds] = useState<string[]>([]);
+
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
 
-  // Fetch upcoming events from Express backend
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+
+  // Fetch all upcoming events
   useEffect(() => {
+    let cancelled = false;
+
     const fetchEvents = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          "http://localhost:8000/api/events",
-          { cache: "no-store" }
-        );
+        const response = await fetch(`${API_URL}/api/events`, {
+          cache: "no-store",
+        });
 
         if (!response.ok) {
-          throw new Error("Failed to load events");
+          throw new Error("Failed to load events.");
         }
 
         const result = await response.json();
 
-        if (result.success && Array.isArray(result.data)) {
+        if (!result.success || !Array.isArray(result.data)) {
+          throw new Error("Invalid events response.");
+        }
+
+        if (!cancelled) {
           setEvents(result.data);
-        } else {
-          throw new Error("Invalid events response");
         }
       } catch (err) {
-        console.error("Events fetching error:", err);
-        setError("Unable to load events. Please try again.");
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to load events."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchEvents();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Filter events by category, search and upcoming date
+  // Fetch user's own events and joined events
+  useEffect(() => {
+    if (isPending || !session) {
+      setMyEventIds([]);
+      setJoinedEventIds([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchUserEvents = async () => {
+      try {
+        const { data, error: tokenError } = await authClient.token();
+
+        if (tokenError || !data?.token) {
+          return;
+        }
+
+        const headers = {
+          Authorization: `Bearer ${data.token}`,
+        };
+
+        const [myEventsResponse, joinedEventsResponse] =
+          await Promise.all([
+            fetch(`${API_URL}/api/my-events`, {
+              headers,
+              cache: "no-store",
+            }),
+            fetch(`${API_URL}/api/joined-events`, {
+              headers,
+              cache: "no-store",
+            }),
+          ]);
+
+        const myEventsResult = await myEventsResponse.json();
+        const joinedEventsResult = await joinedEventsResponse.json();
+
+        if (cancelled) return;
+
+        if (
+          myEventsResponse.ok &&
+          Array.isArray(myEventsResult.data)
+        ) {
+          setMyEventIds(
+            myEventsResult.data.map(
+              (event: Event) => event._id
+            )
+          );
+        }
+
+        if (
+          joinedEventsResponse.ok &&
+          Array.isArray(joinedEventsResult.data)
+        ) {
+          setJoinedEventIds(
+            joinedEventsResult.data
+              .map((item: any) => {
+                // Supports either eventId or populated event data
+                return (
+                  item.event?._id ||
+                  item.eventId ||
+                  item._id
+                );
+              })
+              .filter(Boolean)
+          );
+        }
+      } catch (err) {
+        console.error("User events fetching error:", err);
+      }
+    };
+
+    fetchUserEvents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, isPending]);
+
+  // Filter events
   const filteredEvents = useMemo(() => {
     const search = searchTerm.trim().toLowerCase();
 
@@ -113,7 +220,11 @@ export default function EventsPage() {
         event.location?.toLowerCase().includes(search) ||
         event.description?.toLowerCase().includes(search);
 
-      return isUpcoming && matchesCategory && matchesSearch;
+      return (
+        isUpcoming &&
+        matchesCategory &&
+        matchesSearch
+      );
     });
   }, [events, selectedCategory, searchTerm]);
 
@@ -122,10 +233,68 @@ export default function EventsPage() {
     setSearchTerm("");
   };
 
-  // Join Event - API will be connected after Better Auth
-  const handleJoinEvent = (eventId: string) => {
-    console.log("Join Event requested:", eventId);
-    // Authentication and Join API will be implemented later.
+  // Join Event
+  const handleJoinEvent = async (eventId: string) => {
+    if (isPending) return;
+
+    if (!session) {
+      router.push(
+        `/login?callbackUrl=${encodeURIComponent("/events")}`
+      );
+      return;
+    }
+
+    if (joinedEventIds.includes(eventId)) {
+      setActionMessage("You have already joined this event.");
+      return;
+    }
+
+    try {
+      setJoiningId(eventId);
+      setActionMessage("");
+
+      const { data, error: tokenError } = await authClient.token();
+
+      if (tokenError || !data?.token) {
+        throw new Error("Please login again.");
+      }
+
+      const response = await fetch(
+        `${API_URL}/api/events/${eventId}/join`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${data.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || result.success === false) {
+        throw new Error(
+          result.message || "Unable to join this event."
+        );
+      }
+
+      setJoinedEventIds((previous) => [
+        ...previous,
+        eventId,
+      ]);
+
+      setActionMessage(
+        "Successfully joined the event!"
+      );
+    } catch (err) {
+      setActionMessage(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong."
+      );
+    } finally {
+      setJoiningId(null);
+    }
   };
 
   return (
@@ -210,7 +379,9 @@ export default function EventsPage() {
               key={category}
               type="button"
               variant={
-                selectedCategory === category ? "default" : "outline"
+                selectedCategory === category
+                  ? "default"
+                  : "outline"
               }
               onClick={() => setSelectedCategory(category)}
               className={
@@ -248,6 +419,16 @@ export default function EventsPage() {
             Reset Filters
           </Button>
         </div>
+
+        {/* Action Message */}
+        {actionMessage && (
+          <div
+            role="status"
+            className="mt-5 rounded-xl border border-[#dce8dc] bg-[#eef5ed] px-5 py-3 text-sm font-medium text-[#183c2e]"
+          >
+            {actionMessage}
+          </div>
+        )}
 
         {/* Loading Skeleton */}
         {loading && (
@@ -322,90 +503,111 @@ export default function EventsPage() {
         {/* Event Cards */}
         {!loading && !error && filteredEvents.length > 0 && (
           <div className="mt-10 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredEvents.map((event) => (
-              <Card
-                key={event._id}
-                className="group overflow-hidden rounded-2xl border-[#e9e9e2] bg-white py-0 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
-              >
-                {/* Image */}
-                <div className="relative h-60 overflow-hidden">
-                  <img
-                    src={event.thumbnail || fallbackImage}
-                    alt={event.title}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
+            {filteredEvents.map((event) => {
+              const isOwner = myEventIds.includes(event._id);
+              const isJoined = joinedEventIds.includes(event._id);
+              const isJoining = joiningId === event._id;
 
-                  <Badge className="absolute left-4 top-4 border-0 bg-white px-4 py-2 text-xs font-semibold text-[#315c46] shadow-sm hover:bg-white">
-                    {event.eventType}
-                  </Badge>
+              return (
+                <Card
+                  key={event._id}
+                  className="group overflow-hidden rounded-2xl border-[#e9e9e2] bg-white py-0 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                >
+                  {/* Image */}
+                  <div className="relative h-60 overflow-hidden">
+                    <img
+                      src={event.thumbnail || fallbackImage}
+                      alt={event.title}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
 
-                  <div className="absolute bottom-4 left-4 rounded-lg bg-[#183c2e]/90 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm">
-                    <CalendarDays className="mr-1 inline-block h-3.5 w-3.5" />
-                    {formatDate(event.eventDate)}
-                  </div>
-                </div>
+                    <Badge className="absolute left-4 top-4 border-0 bg-white px-4 py-2 text-xs font-semibold text-[#315c46] shadow-sm hover:bg-white">
+                      {event.eventType}
+                    </Badge>
 
-                {/* Card Content */}
-                <CardContent className="p-6">
-                  <h3 className="line-clamp-1 text-xl font-bold text-[#183c2e]">
-                    {event.title}
-                  </h3>
-
-                  <p className="mt-3 line-clamp-2 min-h-12 text-sm leading-6 text-[#78847c]">
-                    {event.description ||
-                      "Join us and become part of a positive change in your community."}
-                  </p>
-
-                  <div className="mt-5 flex items-center gap-2 border-t border-[#eeeeea] pt-5 text-sm text-[#78847c]">
-                    <MapPin size={16} className="shrink-0" />
-                    <span className="line-clamp-1">
-                      {event.location}
-                    </span>
+                    <div className="absolute bottom-4 left-4 rounded-lg bg-[#183c2e]/90 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm">
+                      <CalendarDays className="mr-1 inline-block h-3.5 w-3.5" />
+                      {formatDate(event.eventDate)}
+                    </div>
                   </div>
 
-                  {/* Event Actions */}
-                  <div className="mt-5 grid grid-cols-3 gap-2">
-                    {/* JOIN BUTTON */}
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => handleJoinEvent(event._id)}
-                      className="rounded-full bg-[#e47b52] px-2 text-white hover:bg-[#cf6842]"
-                    >
-                      <Heart className="mr-1 h-4 w-4" />
-                      Join
-                    </Button>
+                  {/* Card Content */}
+                  <CardContent className="p-6">
+                    <h3 className="line-clamp-1 text-xl font-bold text-[#183c2e]">
+                      {event.title}
+                    </h3>
 
-                    {/* MANAGE BUTTON */}
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled
-                      title="Available after authentication and ownership verification"
-                      className="cursor-not-allowed rounded-full border-[#e5e8e2] px-2 text-[#9aa49d]"
-                    >
-                      <Settings className="mr-1 h-4 w-4" />
-                      Manage
-                    </Button>
+                    <p className="mt-3 line-clamp-2 min-h-12 text-sm leading-6 text-[#78847c]">
+                      {event.description ||
+                        "Join us and become part of a positive change in your community."}
+                    </p>
 
-                    {/* VIEW BUTTON */}
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="rounded-full px-2 font-semibold text-[#315c46] hover:bg-[#eef2ed] hover:text-[#e47b52]"
-                      onClick={() => {
-                        window.location.href = `/events/${event._id}`;
-                      }}
-                    >
-                      <Eye className="mr-1 h-4 w-4" />
-                      View
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="mt-5 flex items-center gap-2 border-t border-[#eeeeea] pt-5 text-sm text-[#78847c]">
+                      <MapPin size={16} className="shrink-0" />
+                      <span className="line-clamp-1">
+                        {event.location}
+                      </span>
+                    </div>
+
+                    {/* Event Actions */}
+                    <div className="mt-5 grid grid-cols-3 gap-2">
+
+                      {/* JOIN */}
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleJoinEvent(event._id)}
+                        disabled={isJoining || isJoined || isOwner}
+                        className="rounded-full bg-[#e47b52] px-2 text-white hover:bg-[#cf6842] disabled:opacity-60"
+                      >
+                        {isJoining ? (
+                          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Heart className="mr-1 h-4 w-4" />
+                        )}
+                        {isOwner
+                          ? "Your Event"
+                          : isJoined
+                            ? "Joined"
+                            : "Join"}
+                      </Button>
+
+                      {/* MANAGE */}
+                      {isOwner ? (
+                        <Link
+                          href="/manage-events"
+                          className="inline-flex h-9 items-center justify-center gap-1 rounded-full border border-[#e5e8e2] px-2 text-xs font-medium text-[#183c2e] transition hover:bg-[#eef2ed]"
+                        >
+                          <Settings className="h-4 w-4" />
+                          Manage
+                        </Link>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled
+                          title="You can only manage your own events."
+                          className="cursor-not-allowed rounded-full border-[#e5e8e2] px-2 text-[#9aa49d]"
+                        >
+                          <Settings className="mr-1 h-4 w-4" />
+                          Manage
+                        </Button>
+                      )}
+
+                      {/* VIEW */}
+                      <Link
+                        href={`/events/${event._id}`}
+                        className="inline-flex h-9 items-center justify-center gap-1 rounded-full px-2 text-xs font-semibold text-[#315c46] transition hover:bg-[#eef2ed] hover:text-[#e47b52]"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </section>
