@@ -551,7 +551,7 @@ export default function ProfilePage() {
                   <h2 className="font-bold text-[#183c2e]">
                     Account Information
                   </h2>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xl text-gray-500">
                     Your GOODWAVE account status.
                   </p>
                 </div>
