@@ -576,6 +576,7 @@ export default function RegisterPage() {
                 disabled
                 className="flex h-14 items-center justify-center gap-3 rounded-2xl border border-[#e1e5e9] font-semibold text-[#183c2e] opacity-60"
               >
+                
                 <span className="text-xl font-bold text-[#4285F4]">G</span>
                 Google
               </button>
@@ -599,6 +600,7 @@ export default function RegisterPage() {
             {/* LOGIN LINK */}
             <p className="mt-8 text-center text-sm text-gray-500">
               Already have an account?{" "}
+
               <Link
                 href="/login"
                 className="font-bold text-[#e47b52] hover:text-[#183c2e]"
