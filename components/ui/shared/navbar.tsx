@@ -212,10 +212,10 @@ export default function Navbar() {
                     </div>
 
                     <div className="border-t border-[#edf0eb] pt-2">
-                      <button
+                  <button
                         type="button"
                         onClick={handleSignOut}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
                       >
                         <LogOut size={17} />
                         Sign Out
