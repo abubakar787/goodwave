@@ -332,16 +332,17 @@ export default function JoinedEventsPage() {
                       {formatDate(event.eventDate)}
                     </span>
                   </div>
-
                   <div className="p-6">
                     <h3 className="line-clamp-1 text-xl font-bold text-[#183c2e]">
                       {event.title}
                     </h3>
-
+ 
                     <p className="mt-3 line-clamp-2 min-h-12 text-sm leading-6 text-gray-500">
                       {event.description ||
                         "Be part of this meaningful community event."}
                     </p>
+
+
 
                     <div className="mt-5 flex items-center gap-2 border-t border-[#edf0eb] pt-5 text-sm text-gray-500">
                       <MapPin
@@ -352,12 +353,12 @@ export default function JoinedEventsPage() {
                         {event.location || "Location not specified"}
                       </span>
                     </div>
-
                     <div className="mt-6 flex items-center justify-between gap-3">
                       <span className="inline-flex items-center gap-2 rounded-full bg-[#e9f0e9] px-4 py-2 text-xs font-bold text-[#183c2e]">
                         <Heart size={14} />
                         Joined
                       </span>
+
 
                       <Link
                         href={`/events/${event._id}`}
